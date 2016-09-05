@@ -51,7 +51,10 @@ func (c *Kubes) Create(m *model.Kube) error {
 		resourceID: m.UUID,
 		model:      m,
 		fn: func(a *Action) error {
-			return c.core.CloudAccounts.provider(m.CloudAccount).CreateKube(m, a)
+			if err := c.core.CloudAccounts.provider(m.CloudAccount).CreateKube(m, a); err != nil {
+				return err
+			}
+			return c.core.DB.Model(m).Update("ready", true).Error
 		},
 	}
 	return provision.Async()

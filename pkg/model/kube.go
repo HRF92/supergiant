@@ -1,5 +1,6 @@
 package model
 
+// Kube objects contains global info about kubernetes ckusters.
 type Kube struct {
 	BaseModel
 
@@ -35,11 +36,15 @@ type Kube struct {
 	AWSConfig     *AWSKubeConfig `json:"aws_config,omitempty" gorm:"-" sg:"store_as_json_in=AWSConfigJSON"`
 	AWSConfigJSON []byte         `json:"-"`
 
+	DOConfig     *DOKubeConfig `json:"do_config,omitempty" gorm:"-" sg:"store_as_json_in=DOConfigJSON"`
+	DOConfigJSON []byte        `json:"-"`
+
 	MasterPublicIP string `json:"master_public_ip" sg:"readonly"`
 
 	Ready bool `json:"ready" sg:"readonly" gorm:"index"`
 }
 
+// AWSKubeConfig holds aws specific information about AWS based KUbernetes clusters.
 type AWSKubeConfig struct {
 	Region              string `json:"region" validate:"nonzero,regexp=^[a-z]{2}-[a-z]+-[0-9]$"`
 	AvailabilityZone    string `json:"availability_zone" validate:"nonzero,regexp=^[a-z]{2}-[a-z]+-[0-9][a-z]$"`
@@ -56,4 +61,12 @@ type AWSKubeConfig struct {
 	ELBSecurityGroupID            string `json:"elb_security_group_id" sg:"readonly"`
 	NodeSecurityGroupID           string `json:"node_security_group_id" sg:"readonly"`
 	MasterID                      string `json:"master_id" sg:"readonly"`
+}
+
+// DOKubeConfig holds do specific information about DO based KUbernetes clusters.
+type DOKubeConfig struct {
+	Region            string `json:"region" validate:"nonzero"`
+	SSHKeyFingerprint string `json:"ssh_key_fingerprint" validate:"nonzero"`
+
+	MasterID int `json:"master_id" sg:"readonly"`
 }

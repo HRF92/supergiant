@@ -64,11 +64,6 @@ func ListKubes(sg *client.Client, w http.ResponseWriter, r *http.Request) error 
 			"field": "name",
 		},
 		{
-			"title": "Availability Zone",
-			"type":  "field_value",
-			"field": "aws_config.availability_zone",
-		},
-		{
 			"title": "Master Size",
 			"type":  "field_value",
 			"field": "master_node_size",

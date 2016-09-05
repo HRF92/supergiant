@@ -27,6 +27,9 @@ func main() {
 		c.AWSProvider = func(creds map[string]string) core.Provider {
 			return &aws.Provider{Core: c, Credentials: creds}
 		}
+		c.DOProvider = func(creds map[string]string) core.Provider {
+			return &DOProvider{Core: c, Credentials: creds["token"]}
+		}
 
 		// We do this here, and not in core, so that we can ensure the file closes on exit.
 		if c.LogPath != "" {

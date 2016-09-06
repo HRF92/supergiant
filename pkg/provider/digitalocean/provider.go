@@ -326,7 +326,7 @@ func (p *Provider) createDroplet(action *core.Action, req *godo.DropletCreateReq
 		if publicIP, err = droplet.PublicIPv4(); err != nil {
 			return false, err
 		}
-		return true, nil
+		return publicIP != "", nil
 	})
 	if waitErr != nil {
 		return nil, "", err

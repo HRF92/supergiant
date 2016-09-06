@@ -39,7 +39,7 @@ var AWSMasterAMIs = map[string]string{
 var globalAWSSession = session.New()
 
 type Provider struct {
-	core        *core.Core
+	Core        *core.Core
 	Credentials map[string]string
 }
 
@@ -49,7 +49,7 @@ func (p *Provider) ValidateAccount(m *model.CloudAccount) error {
 	return err
 }
 
-func (p *Provider) CreateKube(m *model.Kube, action *Action) error {
+func (p *Provider) CreateKube(m *model.Kube, action *core.Action) error {
 	return p.createKube(m, action)
 }
 
@@ -57,7 +57,7 @@ func (p *Provider) DeleteKube(m *model.Kube) error {
 	return p.deleteKube(m)
 }
 
-func (p *Provider) CreateNode(m *model.Node, action *Action) error {
+func (p *Provider) CreateNode(m *model.Node, action *core.Action) error {
 	return p.createNode(m)
 }
 
@@ -65,15 +65,15 @@ func (p *Provider) DeleteNode(m *model.Node) error {
 	return p.deleteServer(m)
 }
 
-func (p *Provider) CreateVolume(m *model.Volume, action *Action) error {
+func (p *Provider) CreateVolume(m *model.Volume, action *core.Action) error {
 	return p.createVolume(m, nil)
 }
 
-func (p *Provider) ResizeVolume(m *model.Volume, action *Action) error {
+func (p *Provider) ResizeVolume(m *model.Volume, action *core.Action) error {
 	return p.resizeVolume(m) // TODO pass action for cancellableWaitFor
 }
 
-func (p *Provider) WaitForVolumeAvailable(m *model.Volume, action *Action) error {
+func (p *Provider) WaitForVolumeAvailable(m *model.Volume, action *core.Action) error {
 	return p.waitForAvailable(m)
 }
 
@@ -81,7 +81,7 @@ func (p *Provider) DeleteVolume(m *model.Volume) error {
 	return p.deleteVolume(m)
 }
 
-func (p *Provider) CreateEntrypoint(m *model.Entrypoint, action *Action) error {
+func (p *Provider) CreateEntrypoint(m *model.Entrypoint, action *core.Action) error {
 	return p.createELB(m)
 }
 
@@ -121,13 +121,13 @@ func (p *Provider) elb(region string) *elb.ELB {
 
 //------------------------------------------------------------------------------
 
-func (p *Provider) createKube(m *model.Kube, action *Action) error {
+func (p *Provider) createKube(m *model.Kube, action *core.Action) error {
 	iamS := p.iam(m.AWSConfig.Region)
 	ec2S := p.ec2(m.AWSConfig.Region)
-	procedure := &Procedure{
-		core:  p.core,
-		name:  "Create Kube",
-		model: m,
+	procedure := &core.Procedure{
+		Core:  p.Core,
+		Name:  "Create Kube",
+		Model: m,
 	}
 
 	procedure.AddStep("preparing IAM Role kubernetes-master", func() error {
@@ -667,7 +667,7 @@ func (p *Provider) createKube(m *model.Kube, action *Action) error {
 			},
 		}
 
-		return action.cancellableWaitFor("Kubernetes master launch", 5*time.Minute, 3*time.Second, func() (bool, error) {
+		return action.CancellableWaitFor("Kubernetes master launch", 5*time.Minute, 3*time.Second, func() (bool, error) {
 			resp, err := ec2S.DescribeInstances(input)
 			if err != nil {
 				return false, err
@@ -679,7 +679,7 @@ func (p *Provider) createKube(m *model.Kube, action *Action) error {
 			if m.MasterPublicIP == "" {
 				if ip := instance.PublicIpAddress; ip != nil {
 					m.MasterPublicIP = *ip
-					if err := p.core.DB.Save(m); err != nil {
+					if err := p.Core.DB.Save(m); err != nil {
 						return false, err
 					}
 				}
@@ -708,12 +708,12 @@ func (p *Provider) createKube(m *model.Kube, action *Action) error {
 			KubeID: m.ID,
 			Size:   m.NodeSizes[0],
 		}
-		return p.core.Nodes.Create(node)
+		return p.Core.Nodes.Create(node)
 	})
 
 	procedure.AddStep("waiting for Kubernetes", func() error {
-		return action.cancellableWaitFor("Kubernetes API and first minion", 20*time.Minute, 3*time.Second, func() (bool, error) {
-			nodes, err := p.core.K8S(m).Nodes().List()
+		return action.CancellableWaitFor("Kubernetes API and first minion", 20*time.Minute, 3*time.Second, func() (bool, error) {
+			nodes, err := p.Core.K8S(m).Nodes().List()
 			if err != nil {
 				return false, nil
 			}
@@ -726,10 +726,10 @@ func (p *Provider) createKube(m *model.Kube, action *Action) error {
 
 func (p *Provider) deleteKube(m *model.Kube) error {
 	ec2S := p.ec2(m.AWSConfig.Region)
-	procedure := &Procedure{
-		core:  p.core,
-		name:  "Delete Kube",
-		model: m,
+	procedure := &core.Procedure{
+		Core:  p.Core,
+		Name:  "Delete Kube",
+		Model: m,
 	}
 
 	procedure.AddStep("deleting master", func() error {
@@ -800,7 +800,7 @@ func (p *Provider) deleteKube(m *model.Kube) error {
 		waitErr := util.WaitFor("Internet Gateway to detach", 5*time.Minute, 5*time.Second, func() (bool, error) {
 			if _, err := ec2S.DetachInternetGateway(diginput); err != nil && !strings.Contains(err.Error(), "not attached") {
 
-				p.core.Log.Warn(err.Error())
+				p.Core.Log.Warn(err.Error())
 
 				return false, nil
 			}
@@ -917,7 +917,7 @@ func (p *Provider) createNode(m *model.Node) error {
 		return err
 	}
 	p.setAttrsFromServer(m, server)
-	if err := p.core.DB.Save(m); err != nil {
+	if err := p.Core.DB.Save(m); err != nil {
 		return err
 	}
 	for _, entrypoint := range m.Kube.Entrypoints {
@@ -1052,7 +1052,7 @@ func (p *Provider) createServer(m *model.Node) (*ec2.Instance, error) {
 	})
 	if err != nil {
 		// TODO
-		p.core.Log.Error("Failed to tag EC2 Instance " + *server.InstanceId)
+		p.Core.Log.Error("Failed to tag EC2 Instance " + *server.InstanceId)
 	}
 
 	return server, nil
@@ -1062,7 +1062,7 @@ func (p *Provider) deleteServer(m *model.Node) error {
 
 	// TODO move out of here
 	if m.Kube == nil {
-		p.core.Log.Warnf("Deleting Node %d without deleting server because Kube is nil", *m.ID)
+		p.Core.Log.Warnf("Deleting Node %d without deleting server because Kube is nil", *m.ID)
 		return nil
 	}
 
@@ -1101,7 +1101,7 @@ func (p *Provider) createELB(m *model.Entrypoint) error {
 
 	// Save Address
 	m.Address = *resp.DNSName
-	if err := p.core.DB.Save(m); err != nil {
+	if err := p.Core.DB.Save(m); err != nil {
 		return err
 	}
 
@@ -1194,7 +1194,7 @@ func (p *Provider) createVolume(volume *model.Volume, snapshotID *string) error 
 
 	volume.ProviderID = *awsVol.VolumeId
 	volume.Size = int(*awsVol.Size)
-	if err := p.core.DB.Save(volume); err != nil {
+	if err := p.Core.DB.Save(volume); err != nil {
 		return err
 	}
 
@@ -1225,7 +1225,7 @@ func (p *Provider) resizeVolume(m *model.Volume) error {
 		return err
 	}
 	if err := p.deleteSnapshot(m, snapshot); err != nil {
-		p.core.Log.Errorf("Error deleting snapshot %s: %s", *snapshot.SnapshotId, err.Error())
+		p.Core.Log.Errorf("Error deleting snapshot %s: %s", *snapshot.SnapshotId, err.Error())
 	}
 	return nil
 }
@@ -1263,7 +1263,7 @@ func (p *Provider) waitForAvailable(volume *model.Volume) error {
 		return nil
 	}
 
-	p.core.Log.Debugf("Waiting for EBS volume %s to be available", volume.Name)
+	p.Core.Log.Debugf("Waiting for EBS volume %s to be available", volume.Name)
 	return p.ec2(volume.Kube.AWSConfig.Region).WaitUntilVolumeAvailable(input)
 }
 
@@ -1293,7 +1293,7 @@ func (p *Provider) createSnapshot(volume *model.Volume) (*ec2.Snapshot, error) {
 	//
 	// TODO
 	//
-	// We should use action.cancellableWaitFor here
+	// We should use action.CancellableWaitFor here
 	//
 	if err := p.ec2(volume.Kube.AWSConfig.Region).WaitUntilSnapshotCompleted(waitInput); err != nil {
 		return nil, err // TODO destroy snapshot that failed to complete?

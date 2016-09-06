@@ -8,6 +8,7 @@ import (
 	"github.com/codegangsta/cli"
 	"github.com/supergiant/supergiant/pkg/core"
 	"github.com/supergiant/supergiant/pkg/provider/aws"
+	"github.com/supergiant/supergiant/pkg/provider/digitalocean"
 	"github.com/supergiant/supergiant/pkg/server"
 )
 
@@ -28,7 +29,7 @@ func main() {
 			return &aws.Provider{Core: c, Credentials: creds}
 		}
 		c.DOProvider = func(creds map[string]string) core.Provider {
-			return &DOProvider{Core: c, Credentials: creds["token"]}
+			return &digitalocean.Provider{Core: c, Token: creds["token"]}
 		}
 
 		// We do this here, and not in core, so that we can ensure the file closes on exit.

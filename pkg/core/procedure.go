@@ -3,9 +3,9 @@ package core
 import "github.com/supergiant/supergiant/pkg/model"
 
 type Procedure struct {
-	core  *Core
-	name  string
-	model model.Model
+	Core  *Core
+	Name  string
+	Model model.Model
 	steps []*Step
 }
 
@@ -20,11 +20,11 @@ func (p *Procedure) AddStep(desc string, fn func() error) {
 
 func (p *Procedure) Run() error {
 	for _, step := range p.steps {
-		p.core.Log.Infof("Running step of %s procedure: %s", p.name, step.desc)
+		p.Core.Log.Infof("Running step of %s procedure: %s", p.Name, step.desc)
 		if err := step.fn(); err != nil {
 			return err
 		}
-		if err := p.core.DB.Save(p.model); err != nil {
+		if err := p.Core.DB.Save(p.Model); err != nil {
 			return err
 		}
 	}

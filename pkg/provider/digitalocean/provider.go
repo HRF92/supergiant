@@ -1,4 +1,4 @@
-package core
+package digitalocean
 
 import (
 	"errors"
@@ -7,29 +7,30 @@ import (
 	"time"
 
 	"github.com/digitalocean/godo"
+	"github.com/supergiant/supergiant/pkg/core"
 	"github.com/supergiant/supergiant/pkg/model"
 	"golang.org/x/oauth2"
 )
 
-// DOProvider Holds DO account info.
-type DOProvider struct {
-	core  *Core
+// Provider Holds DO account info.
+type Provider struct {
+	Core  *core.Core
 	Token string
 }
 
 // ValidateAccount Valitades DO account info.
-func (p *DOProvider) ValidateAccount(m *model.CloudAccount) error {
+func (p *Provider) ValidateAccount(m *model.CloudAccount) error {
 	client := p.newClient()
 	_, _, err := client.Droplets.List(new(godo.ListOptions))
 	return err
 }
 
 // CreateKube creates a new DO kubernetes cluster.
-func (p *DOProvider) CreateKube(m *model.Kube, action *Action) error {
-	procedure := &Procedure{
-		core:  p.core,
-		name:  "Create Kube",
-		model: m,
+func (p *Provider) CreateKube(m *model.Kube, action *core.Action) error {
+	procedure := &core.Procedure{
+		Core:  p.Core,
+		Name:  "Create Kube",
+		Model: m,
 	}
 
 	client := p.newClient()
@@ -48,7 +49,7 @@ func (p *DOProvider) CreateKube(m *model.Kube, action *Action) error {
 			}
 			if _, _, err := client.Tags.Create(createInput); err != nil {
 				// TODO
-				p.core.Log.Warnf("Failed to create Digital Ocean tag '%s': %s", tag, err)
+				p.Core.Log.Warnf("Failed to create Digital Ocean tag '%s': %s", tag, err)
 			}
 		}
 		return nil
@@ -97,7 +98,7 @@ func (p *DOProvider) CreateKube(m *model.Kube, action *Action) error {
 		// Load Nodes to see if we've already created a minion
 		// TODO -- I think we can get rid of a lot of this do-unless behavior if we
 		// modify Procedure to save progess on Action (which is easy to implement).
-		if err := p.core.DB.Model(m).Association("Nodes").Find(&m.Nodes).Error; err != nil {
+		if err := p.Core.DB.Model(m).Association("Nodes").Find(&m.Nodes).Error; err != nil {
 			return err
 		}
 		if len(m.Nodes) > 0 {
@@ -108,13 +109,13 @@ func (p *DOProvider) CreateKube(m *model.Kube, action *Action) error {
 			KubeID: m.ID,
 			Size:   m.NodeSizes[0],
 		}
-		return p.core.Nodes.Create(node)
+		return p.Core.Nodes.Create(node)
 	})
 
 	// TODO repeated in provider_aws.go
 	procedure.AddStep("waiting for Kubernetes", func() error {
 		return action.CancellableWaitFor("Kubernetes API and first minion", 20*time.Minute, 3*time.Second, func() (bool, error) {
-			nodes, err := p.core.K8S(m).Nodes().List()
+			nodes, err := p.Core.K8S(m).Nodes().List()
 			if err != nil {
 				return false, nil
 			}
@@ -126,14 +127,14 @@ func (p *DOProvider) CreateKube(m *model.Kube, action *Action) error {
 }
 
 // DeleteKube deletes a DO kubernetes cluster.
-func (p *DOProvider) DeleteKube(m *model.Kube) error {
+func (p *Provider) DeleteKube(m *model.Kube) error {
 	// New Client
 	client := p.newClient()
 	// Step procedure
-	procedure := &Procedure{
-		core:  p.core,
-		name:  "Delete Kube",
-		model: m,
+	procedure := &core.Procedure{
+		Core:  p.Core,
+		Name:  "Delete Kube",
+		Model: m,
 	}
 
 	procedure.AddStep("deleting master", func() error {
@@ -151,7 +152,7 @@ func (p *DOProvider) DeleteKube(m *model.Kube) error {
 }
 
 // CreateNode creates a new minion on DO kubernetes cluster.
-func (p *DOProvider) CreateNode(m *model.Node, action *Action) error {
+func (p *Provider) CreateNode(m *model.Node, action *core.Action) error {
 	userdata, err := ioutil.ReadFile("config/providers/digitalocean/minion.yaml")
 	if err != nil {
 		return err
@@ -183,7 +184,7 @@ func (p *DOProvider) CreateNode(m *model.Node, action *Action) error {
 	createdAt, err := time.Parse("2006-01-02T15:04:05Z", minionDroplet.Created)
 	if err != nil {
 		// TODO need to return on error here
-		p.core.Log.Warnf("Could not parse Droplet creation timestamp string '%s': %s", minionDroplet.Created, err)
+		p.Core.Log.Warnf("Could not parse Droplet creation timestamp string '%s': %s", minionDroplet.Created, err)
 	}
 
 	// Save info before waiting on IP
@@ -191,11 +192,11 @@ func (p *DOProvider) CreateNode(m *model.Node, action *Action) error {
 	m.ProviderCreationTimestamp = createdAt
 	m.ExternalIP = publicIP
 
-	return p.core.DB.Save(m)
+	return p.Core.DB.Save(m)
 }
 
 // DeleteNode deletes a minsion on a DO kubernetes cluster.
-func (p *DOProvider) DeleteNode(m *model.Node) error {
+func (p *Provider) DeleteNode(m *model.Node) error {
 	client := p.newClient()
 
 	intID, err := strconv.Atoi(m.ProviderID)
@@ -207,42 +208,42 @@ func (p *DOProvider) DeleteNode(m *model.Node) error {
 }
 
 // CreateVolume createss a Volume on DO for Kubernetes
-func (p *DOProvider) CreateVolume(m *model.Volume, action *Action) error {
+func (p *Provider) CreateVolume(m *model.Volume, action *core.Action) error {
 	return errors.New("butt")
 }
 
 // ResizeVolume re-sizes volume on DO kubernetes cluster.
-func (p *DOProvider) ResizeVolume(m *model.Volume, action *Action) error {
+func (p *Provider) ResizeVolume(m *model.Volume, action *core.Action) error {
 	return errors.New("butt")
 }
 
 // WaitForVolumeAvailable waits for DO volume to become available.
-func (p *DOProvider) WaitForVolumeAvailable(m *model.Volume, action *Action) error {
+func (p *Provider) WaitForVolumeAvailable(m *model.Volume, action *core.Action) error {
 	return errors.New("butt")
 }
 
 // DeleteVolume deletes a DO volume.
-func (p *DOProvider) DeleteVolume(m *model.Volume) error {
+func (p *Provider) DeleteVolume(m *model.Volume) error {
 	return errors.New("butt")
 }
 
 // CreateEntrypoint creates a new Load Balancer for Kubernetes in DO
-func (p *DOProvider) CreateEntrypoint(m *model.Entrypoint, action *Action) error {
+func (p *Provider) CreateEntrypoint(m *model.Entrypoint, action *core.Action) error {
 	return errors.New("butt")
 }
 
 //AddPortToEntrypoint adds an external entrypoint to a Loadbalancer in DO.
-func (p *DOProvider) AddPortToEntrypoint(m *model.Entrypoint, lbPort int64, nodePort int64) error {
+func (p *Provider) AddPortToEntrypoint(m *model.Entrypoint, lbPort int64, nodePort int64) error {
 	return errors.New("butt")
 }
 
 // RemovePortFromEntrypoint removes external entrypoint from Loadbalancer on DO.
-func (p *DOProvider) RemovePortFromEntrypoint(m *model.Entrypoint, lbPort int64) error {
+func (p *Provider) RemovePortFromEntrypoint(m *model.Entrypoint, lbPort int64) error {
 	return errors.New("butt")
 }
 
 // DeleteEntrypoint deletes load balancer from DO.
-func (p *DOProvider) DeleteEntrypoint(m *model.Entrypoint) error {
+func (p *Provider) DeleteEntrypoint(m *model.Entrypoint) error {
 	return errors.New("butt")
 }
 
@@ -262,7 +263,7 @@ func (t *TokenSource) Token() (*oauth2.Token, error) {
 }
 
 // DO Client
-func (p *DOProvider) newClient() *godo.Client {
+func (p *Provider) newClient() *godo.Client {
 	token := &TokenSource{
 		AccessToken: p.Token,
 	}
@@ -271,7 +272,7 @@ func (p *DOProvider) newClient() *godo.Client {
 }
 
 // Create droplet
-func (p *DOProvider) createDroplet(req *godo.DropletCreateRequest, tags []string) (*godo.Droplet, string, error) {
+func (p *Provider) createDroplet(req *godo.DropletCreateRequest, tags []string) (*godo.Droplet, string, error) {
 	client := p.newClient()
 
 	// Create
@@ -292,7 +293,7 @@ func (p *DOProvider) createDroplet(req *godo.DropletCreateRequest, tags []string
 		}
 		if _, err = client.Tags.TagResources(tag, input); err != nil {
 			// TODO
-			p.core.Log.Warnf("Failed to tag Droplet %d with value %s", droplet.ID, tag)
+			p.Core.Log.Warnf("Failed to tag Droplet %d with value %s", droplet.ID, tag)
 			// return nil, err
 		}
 	}

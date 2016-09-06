@@ -93,12 +93,11 @@ func (p *Provider) CreateKube(m *model.Kube, action *core.Action) error {
 		}
 		tags := []string{"Kubernetes-Cluster", m.Name, dropletRequest.Name}
 
-		masterDroplet, publicIP, err := p.createDroplet(dropletRequest, tags)
+		masterDroplet, publicIP, err := p.createDroplet(action, dropletRequest, tags)
 		if err != nil {
 			return err
 		}
 
-		// Save immediately after getting master ID
 		m.DOConfig.MasterID = masterDroplet.ID
 		m.MasterPublicIP = publicIP
 		return nil
@@ -195,7 +194,7 @@ func (p *Provider) CreateNode(m *model.Node, action *core.Action) error {
 	}
 	tags := []string{"Kubernetes-Cluster", m.Kube.Name, dropletRequest.Name}
 
-	minionDroplet, publicIP, err := p.createDroplet(dropletRequest, tags)
+	minionDroplet, publicIP, err := p.createDroplet(action, dropletRequest, tags)
 	if err != nil {
 		return err
 	}
@@ -292,11 +291,11 @@ func (p *Provider) newClient() *godo.Client {
 }
 
 // Create droplet
-func (p *Provider) createDroplet(req *godo.DropletCreateRequest, tags []string) (*godo.Droplet, string, error) {
+func (p *Provider) createDroplet(action *core.Action, req *godo.DropletCreateRequest, tags []string) (droplet *godo.Droplet, publicIP string, err error) {
 	client := p.newClient()
 
 	// Create
-	droplet, _, err := client.Droplets.Create(req)
+	droplet, _, err = client.Droplets.Create(req)
 	if err != nil {
 		return nil, "", err
 	}
@@ -320,12 +319,16 @@ func (p *Provider) createDroplet(req *godo.DropletCreateRequest, tags []string) 
 
 	// NOTE we have to reload to get the IP -- even with a looping wait, the
 	// droplet returned from create resp never loads the IP.
-	droplet, _, err = client.Droplets.Get(droplet.ID)
-	if err != nil {
-		return nil, "", err
-	}
-	publicIP, err := droplet.PublicIPv4()
-	if err != nil {
+	waitErr := action.CancellableWaitFor("master public IP assignment", 5*time.Minute, 5*time.Second, func() (bool, error) {
+		if droplet, _, err = client.Droplets.Get(droplet.ID); err != nil {
+			return false, err
+		}
+		if publicIP, err = droplet.PublicIPv4(); err != nil {
+			return false, err
+		}
+		return true, nil
+	})
+	if waitErr != nil {
 		return nil, "", err
 	}
 

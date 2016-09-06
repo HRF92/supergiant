@@ -68,21 +68,20 @@ write_files:
     content: |
       apiVersion: v1
       kind: Config
-      clusters:
-      - name: local
-        cluster:
-          certificate-authority: /etc/kubernetes/ssl/ca.pem
       users:
       - name: kubelet
         user:
-          client-certificate: /etc/kubernetes/ssl/worker.pem
-          client-key: /etc/kubernetes/ssl/worker-key.pem
+          token: {{ .Kube.Password }}
+      clusters:
+      - name: local
+        cluster:
+           insecure-skip-tls-verify: true
       contexts:
       - context:
           cluster: local
           user: kubelet
-        name: kubelet-context
-      current-context: kubelet-context
+        name: service-account-context
+      current-context: service-account-context
 coreos:
   flannel:
     iface: $public_ipv4
@@ -135,6 +134,7 @@ coreos:
             Restart=always
             Restart=on-failure
     - name: kubelet.service
+      command: start
       content: |
         # /usr/lib64/systemd/system/kubelet.service
         [Unit]
@@ -144,14 +144,12 @@ coreos:
         ExecStart=/opt/bin/kubelet \
           --allow-privileged=true \
           --api_servers=https://{{ .Kube.MasterPublicIP }} \
-          --cluster-dns=${DNS_SERVICE_IP} \
+          --cluster-dns=10.3.0.10 \
           --cluster_domain=cluster.local \
           --config=/etc/kubernetes/manifests \
           --hostname-override=$public_ipv4 \
           --kubeconfig=/etc/kubernetes/worker-kubeconfig.yaml \
           --register-node=true \
-          --tls-cert-file=/etc/kubernetes/ssl/worker.pem \
-          --tls-private-key-file=/etc/kubernetes/ssl/worker-key.pem
         Restart=on-failure
         RestartSec=5
         [Install]

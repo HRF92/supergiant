@@ -118,6 +118,7 @@ func (p *Provider) CreateKube(m *model.Kube, action *core.Action) error {
 		node := &model.Node{
 			KubeID: m.ID,
 			Size:   m.NodeSizes[0],
+			Kube:   m,
 		}
 		return p.Core.Nodes.Create(node)
 	})

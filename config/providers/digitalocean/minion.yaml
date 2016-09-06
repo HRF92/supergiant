@@ -38,7 +38,7 @@ write_files:
           command:
           - /hyperkube
           - proxy
-          - --master=https://${MASTER_HOST}
+          - --master=https://{{ .Kube.MasterPublicIP }}
           - --kubeconfig=/etc/kubernetes/worker-kubeconfig.yaml
           - --proxy-mode=iptables
           securityContext:
@@ -86,7 +86,7 @@ write_files:
 coreos:
   flannel:
     iface: $public_ipv4
-    etcd_endpoints: http://${ETCD_IP}:2379
+    etcd_endpoints: http://{{ .Kube.MasterPublicIP }}:2379
 
   units:
     - name: flanneld.service
@@ -143,7 +143,7 @@ coreos:
         ExecStartPre=/bin/bash -c "/opt/bin/download-k8s-binary kubelet"
         ExecStart=/opt/bin/kubelet \
           --allow-privileged=true \
-          --api_servers=https://${MASTER_HOST} \
+          --api_servers=https://{{ .Kube.MasterPublicIP }} \
           --cluster-dns=${DNS_SERVICE_IP} \
           --cluster_domain=cluster.local \
           --config=/etc/kubernetes/manifests \

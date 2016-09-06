@@ -1,9 +1,11 @@
 package digitalocean
 
 import (
+	"bytes"
 	"errors"
 	"io/ioutil"
 	"strconv"
+	"text/template"
 	"time"
 
 	"github.com/digitalocean/godo"
@@ -60,9 +62,17 @@ func (p *Provider) CreateKube(m *model.Kube, action *core.Action) error {
 			return nil
 		}
 
-		// TODO we should just load this once if no interpolation
-		masterUserdata, err := ioutil.ReadFile("config/providers/digitalocean/master.yaml")
+		// Build template
+		masterUserdataTemplate, err := ioutil.ReadFile("config/providers/digitalocean/master.yaml")
 		if err != nil {
+			return err
+		}
+		masterTemplate, err := template.New("master_template").Parse(string(masterUserdataTemplate))
+		if err != nil {
+			return err
+		}
+		var masterUserdata bytes.Buffer
+		if err = masterTemplate.Execute(&masterUserdata, m); err != nil {
 			return err
 		}
 
@@ -71,7 +81,7 @@ func (p *Provider) CreateKube(m *model.Kube, action *core.Action) error {
 			Region:            m.DOConfig.Region,
 			Size:              m.MasterNodeSize,
 			PrivateNetworking: false,
-			UserData:          string(masterUserdata),
+			UserData:          string(masterUserdata.Bytes()),
 			SSHKeys: []godo.DropletCreateSSHKey{
 				{
 					Fingerprint: m.DOConfig.SSHKeyFingerprint,
@@ -153,8 +163,17 @@ func (p *Provider) DeleteKube(m *model.Kube) error {
 
 // CreateNode creates a new minion on DO kubernetes cluster.
 func (p *Provider) CreateNode(m *model.Node, action *core.Action) error {
-	userdata, err := ioutil.ReadFile("config/providers/digitalocean/minion.yaml")
+	// Build template
+	minionUserdataTemplate, err := ioutil.ReadFile("config/providers/digitalocean/minion.yaml")
 	if err != nil {
+		return err
+	}
+	minionTemplate, err := template.New("master_template").Parse(string(minionUserdataTemplate))
+	if err != nil {
+		return err
+	}
+	var minionUserdata bytes.Buffer
+	if err = minionTemplate.Execute(&minionUserdata, m); err != nil {
 		return err
 	}
 
@@ -163,7 +182,7 @@ func (p *Provider) CreateNode(m *model.Node, action *core.Action) error {
 		Region:            m.Kube.DOConfig.Region,
 		Size:              m.Size,
 		PrivateNetworking: true,
-		UserData:          string(userdata),
+		UserData:          string(minionUserdata.Bytes()),
 		SSHKeys: []godo.DropletCreateSSHKey{
 			{
 				Fingerprint: m.Kube.DOConfig.SSHKeyFingerprint,

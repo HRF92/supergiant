@@ -45,10 +45,11 @@ write_files:
       #!/bin/bash
       until $(curl --output /dev/null --silent --head --fail http://127.0.0.1:8080); do printf '.'; sleep 5; done
       curl -XPOST -H 'Content-type: application/json' -d'{"apiVersion":"v1","kind":"Namespace","metadata":{"name":"kube-system"}}' http://127.0.0.1:8080/api/v1/namespaces
-      kubectl config set-cluster default-cluster --server="127.0.0.1:8080"
-      kubectl config set-context default-system --cluster=default-cluster --user=default-admin
-      kubectl config use-context default-system
-      kubectl create -f /etc/kubernetes/addons/kube-dns.yaml
+      /opt/bin/kubectl config set-cluster default-cluster --server="127.0.0.1:8080"
+      /opt/bin/kubectl config set-context default-system --cluster=default-cluster --user=default-admin
+      /opt/bin/kubectl config use-context default-system
+      /opt/bin/kubectl create -f /etc/kubernetes/addons/kube-dns.yaml
+      /opt/bin/kubectl create -f /etc/kubernetes/addons/cluster-monitoring
   - path: "/etc/kubernetes/ssl/openssl.cnf.template"
     permissions: "0755"
     content: |
@@ -225,7 +226,7 @@ write_files:
                     memory: 212Mi
                 command:
                   - /heapster
-                  - --source=kubernetes:''
+                  - --source=kubernetes
                   - --sink=influxdb:http://monitoring-influxdb:8086
                   - --stats_resolution=30s
                   - --sink_frequency=1m

@@ -228,12 +228,27 @@ func (p *Provider) DeleteNode(m *model.Node) error {
 
 // CreateVolume createss a Volume on DO for Kubernetes
 func (p *Provider) CreateVolume(m *model.Volume, action *core.Action) error {
-	return errors.New("butt")
+	volume := &godo.VolumeCreateRequest{
+		Region:        m.Kube.DOConfig.Region,
+		Name:          m.Name,
+		SizeGigaBytes: int64(m.Size),
+	}
+
+	createdVolume, _, err := godo.StorageServiceOp.CreateVolume(volume)
+	if err != nil {
+		return err
+	}
+	m.ID = createdVolume.ID
+	return nil
 }
 
 // ResizeVolume re-sizes volume on DO kubernetes cluster.
 func (p *Provider) ResizeVolume(m *model.Volume, action *core.Action) error {
-	return errors.New("butt")
+	_, _, err := godo.StorageActionsService.Resize(m.ID, m.Size, m.Kube.DOConfig.Region)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // WaitForVolumeAvailable waits for DO volume to become available.
@@ -243,7 +258,11 @@ func (p *Provider) WaitForVolumeAvailable(m *model.Volume, action *core.Action) 
 
 // DeleteVolume deletes a DO volume.
 func (p *Provider) DeleteVolume(m *model.Volume) error {
-	return errors.New("butt")
+	err := godo.StorageServiceOp.DeleteVolume(&m.ID)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // CreateEntrypoint creates a new Load Balancer for Kubernetes in DO

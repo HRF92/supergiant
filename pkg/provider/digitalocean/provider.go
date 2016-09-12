@@ -233,18 +233,17 @@ func (p *Provider) CreateVolume(m *model.Volume, action *core.Action) error {
 		Name:          m.Name,
 		SizeGigaBytes: int64(m.Size),
 	}
-
-	createdVolume, _, err := godo.StorageServiceOp.CreateVolume(volume)
+	createdVolume, _, err := p.newClient().Storage.CreateVolume(volume)
 	if err != nil {
 		return err
 	}
-	m.ID = createdVolume.ID
+	m.ProviderID = createdVolume.ID
 	return nil
 }
 
 // ResizeVolume re-sizes volume on DO kubernetes cluster.
 func (p *Provider) ResizeVolume(m *model.Volume, action *core.Action) error {
-	_, _, err := godo.StorageActionsService.Resize(m.ID, m.Size, m.Kube.DOConfig.Region)
+	_, _, err := p.newClient().StorageActions.Resize(m.ProviderID, m.Size, m.Kube.DOConfig.Region)
 	if err != nil {
 		return err
 	}
@@ -258,7 +257,7 @@ func (p *Provider) WaitForVolumeAvailable(m *model.Volume, action *core.Action) 
 
 // DeleteVolume deletes a DO volume.
 func (p *Provider) DeleteVolume(m *model.Volume) error {
-	err := godo.StorageServiceOp.DeleteVolume(&m.ID)
+	_, err := p.newClient().Storage.DeleteVolume(m.ProviderID)
 	if err != nil {
 		return err
 	}

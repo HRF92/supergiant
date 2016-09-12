@@ -265,14 +265,8 @@ func (c *Instances) provisionReplicationController(m *model.Instance) error {
 
 	var kubeVolumes []*guber.Volume
 	for _, volume := range m.Volumes {
-		kubeVol := &guber.Volume{
-			Name: volume.Name,
-			AwsElasticBlockStore: &guber.AwsElasticBlockStore{
-				VolumeID: volume.ProviderID,
-				FSType:   "ext4",
-			},
-		}
-		kubeVolumes = append(kubeVolumes, kubeVol)
+		kubeVolume := c.core.CloudAccounts.provider(volume.Kube.CloudAccount).KubernetesVolumeDefinition(volume)
+		kubeVolumes = append(kubeVolumes, kubeVolume)
 	}
 
 	var pullSecrets []*guber.ImagePullSecret

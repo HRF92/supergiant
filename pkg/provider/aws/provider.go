@@ -17,6 +17,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/aws/aws-sdk-go/service/iam"
+	"github.com/supergiant/guber"
 	"github.com/supergiant/supergiant/pkg/core"
 	"github.com/supergiant/supergiant/pkg/model"
 	"github.com/supergiant/supergiant/pkg/util"
@@ -67,6 +68,16 @@ func (p *Provider) DeleteNode(m *model.Node) error {
 
 func (p *Provider) CreateVolume(m *model.Volume, action *core.Action) error {
 	return p.createVolume(m, nil)
+}
+
+func (p *Provider) KubernetesVolumeDefinition(m *model.Volume) *guber.Volume {
+	return &guber.Volume{
+		Name: m.Name,
+		AwsElasticBlockStore: &guber.AwsElasticBlockStore{
+			VolumeID: m.ProviderID,
+			FSType:   "ext4",
+		},
+	}
 }
 
 func (p *Provider) ResizeVolume(m *model.Volume, action *core.Action) error {

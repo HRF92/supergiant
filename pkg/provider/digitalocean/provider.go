@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/digitalocean/godo"
+	"github.com/supergiant/guber"
 	"github.com/supergiant/supergiant/pkg/core"
 	"github.com/supergiant/supergiant/pkg/model"
 	"golang.org/x/oauth2"
@@ -245,6 +246,20 @@ func (p *Provider) CreateVolume(m *model.Volume, action *core.Action) error {
 	}
 	m.ProviderID = createdVolume.ID
 	return nil
+}
+
+func (p *Provider) KubernetesVolumeDefinition(m *model.Volume) *guber.Volume {
+	return &guber.Volume{
+		Name: m.Name,
+		FlexVolume: &guber.FlexVolume{
+			Driver: "supergiant.io/digitalocean",
+			FSType: "ext4",
+			Options: map[string]string{
+				"volumeID": m.ProviderID,
+				"name":     m.Name,
+			},
+		},
+	}
 }
 
 // ResizeVolume re-sizes volume on DO kubernetes cluster.

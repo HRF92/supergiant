@@ -3,10 +3,6 @@ package model
 type Volume struct {
 	BaseModel
 
-	// belongs_to Instance
-	Instance   *Instance `json:"instance"`
-	InstanceID *int64    `json:"instance_id" gorm:"not null;index"`
-
 	// belongs_to Kube
 	Kube   *Kube  `json:"kube"`
 	KubeID *int64 `json:"kube_id" gorm:"not null;index"`

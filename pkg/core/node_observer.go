@@ -1,6 +1,9 @@
 package core
 
-import "github.com/supergiant/supergiant/pkg/model"
+import (
+	"github.com/supergiant/supergiant/pkg/model"
+	kapi "k8s.io/kubernetes/pkg/api"
+)
 
 type NodeObserver struct {
 	core *Core
@@ -13,37 +16,68 @@ func (s *NodeObserver) Perform() error {
 	}
 
 	for _, kube := range kubes {
+
+		k8s := &KubernetesClient{kube}
+
+		metrics, err := k8s.ListNodeHeapsterMetrics()
+		if err != nil {
+			return err
+		}
+
+		k8sNodes, err := k8s.ListNodes("")
+		if err != nil {
+			return err
+		}
+
 		for _, node := range kube.Nodes {
-			k8sNode, err := s.core.K8S(kube).Nodes().Get(node.Name)
-			if err != nil {
-				if isKubeNotFoundErr(err) {
-					// node.Ready = false    TODO we should probably be setting ready in this observer size
-					s.core.Log.Warn(err.Error())
-					continue
-				} else {
-					return err
+
+			var knode kapi.Node
+			for _, kn := range k8sNodes {
+				if kn.ObjectMeta.Name == node.Name {
+					knode = kn
+					break
 				}
 			}
 
-			// node.Ready = true
-			node.ExternalIP = k8sNode.ExternalIP()
-			node.OutOfDisk = k8sNode.IsOutOfDisk()
-
-			stats, err := k8sNode.HeapsterStats()
-			if err != nil {
-				s.core.Log.Warnf("Could not load Heapster stats for node %s", node.Name)
-			} else {
-				cpuUsage := stats.Stats["cpu-usage"]
-				memUsage := stats.Stats["memory-usage"]
-
-				if cpuUsage != nil && memUsage != nil {
-					node.CPUUsage = cpuUsage.Minute.Average
-					node.CPULimit = stats.Stats["cpu-limit"].Minute.Average
-
-					node.RAMUsage = memUsage.Minute.Average
-					node.RAMLimit = stats.Stats["memory-limit"].Minute.Average
+			// Set ExternalIP
+			for _, addr := range knode.Status.Addresses {
+				if addr.Type == "ExternalIP" {
+					node.ExternalIP = addr.Address
+					break
 				}
 			}
+
+			// Set OutOfDisk
+			if len(knode.Status.Conditions) > 0 {
+				for _, condition := range knode.Status.Conditions {
+					if condition.Type == "OutOfDisk" {
+						node.OutOfDisk = condition.Status == "True"
+						break
+					}
+				}
+			}
+
+			var nodeSize *NodeSize
+			for _, ns := range s.core.NodeSizes[kube.CloudAccount.Provider] {
+				if ns.Name == node.Size {
+					nodeSize = ns
+					break
+				}
+			}
+
+			var metric *HeapsterMetric
+			for _, mtrc := range metrics {
+				if mtrc.Name == node.Name {
+					metric = mtrc
+					break
+				}
+			}
+
+			// Set Metrics
+			node.CPUUsage = metric.CPUUsage
+			node.RAMUsage = metric.RAMUsage
+			node.CPULimit = int64(nodeSize.CPUCores * 1000)
+			node.RAMLimit = int64(nodeSize.RAMGIB * 1073741824)
 
 			if err := s.core.DB.Save(node); err != nil {
 				return err

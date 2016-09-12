@@ -58,18 +58,14 @@ type Core struct {
 
 	DB *DB
 
-	Sessions         *Sessions
-	Users            *Users
-	CloudAccounts    *CloudAccounts
-	Kubes            *Kubes
-	Apps             *Apps
-	Components       *Components
-	Releases         *Releases
-	Instances        *Instances
-	Volumes          *Volumes
-	PrivateImageKeys *PrivateImageKeys
-	Entrypoints      *Entrypoints
-	Nodes            *Nodes
+	Sessions            *Sessions
+	Users               *Users
+	CloudAccounts       *CloudAccounts
+	Kubes               *Kubes
+	Volumes             *Volumes
+	Entrypoints         *Entrypoints
+	EntrypointListeners *EntrypointListeners
+	Nodes               *Nodes
 
 	// TODO should this be a pseudo-collection like Sessions?
 	Actions *SafeMap
@@ -152,14 +148,9 @@ func (c *Core) InitializeForeground() error {
 		&model.User{},
 		&model.Kube{},
 		&model.CloudAccount{},
-		&model.PrivateImageKey{},
-		&model.App{},
-		&model.Component{},
-		&model.ComponentPrivateImageKey{},
-		&model.Release{},
-		&model.Instance{},
 		&model.Volume{},
 		&model.Entrypoint{},
+		&model.EntrypointListener{},
 		&model.Node{},
 	).Error
 	if err != nil {
@@ -168,13 +159,9 @@ func (c *Core) InitializeForeground() error {
 	c.Users = &Users{Collection{c}}
 	c.Kubes = &Kubes{Collection{c}}
 	c.CloudAccounts = &CloudAccounts{Collection{c}}
-	c.Apps = &Apps{Collection{c}}
-	c.Components = &Components{Collection{c}}
-	c.Releases = &Releases{Collection{c}}
-	c.Instances = &Instances{Collection{c}}
 	c.Volumes = &Volumes{Collection{c}}
-	c.PrivateImageKeys = &PrivateImageKeys{Collection{c}}
 	c.Entrypoints = &Entrypoints{Collection{c}}
+	c.EntrypointListeners = &EntrypointListeners{Collection{c}}
 	c.Nodes = &Nodes{Collection{c}}
 	c.Sessions = NewSessions(c)
 
@@ -197,11 +184,11 @@ func (c *Core) InitializeBackground() {
 		service:  &NodeObserver{c},
 		interval: 30 * time.Second,
 	}
-	instanceObserver := &RecurringService{
-		core:     c,
-		service:  &InstanceObserver{c},
-		interval: 30 * time.Second,
-	}
+	// podObserver := &RecurringService{
+	// 	core:     c,
+	// 	service:  &PodObserver{c},
+	// 	interval: 30 * time.Second,
+	// }
 	sessionExpirer := &RecurringService{
 		core:     c,
 		service:  &SessionExpirer{c},
@@ -210,7 +197,7 @@ func (c *Core) InitializeBackground() {
 
 	go capacityService.Run()
 	go nodeObserver.Run()
-	go instanceObserver.Run()
+	// go podObserver.Run()
 	go sessionExpirer.Run()
 }
 

@@ -627,6 +627,17 @@ func (p *Provider) CreateKube(m *model.Kube, action *core.Action) error {
 	// Create first minion
 
 	provisioner.addStep("creating Kubernetes minion", func() error {
+		// Load Nodes to see if we've already created a minion
+		// TODO -- I think we can get rid of a lot of this do-unless behavior if we
+		// modify Procedure to save progess on Action (which is easy to implement).
+		// NOTE repeated in digitalocean
+		if err := p.Core.DB.Model(m).Association("Nodes").Find(&m.Nodes).Error; err != nil {
+			return err
+		}
+		if len(m.Nodes) > 0 {
+			return nil
+		}
+
 		node := &model.Node{
 			KubeID: m.ID,
 			Size:   m.NodeSizes[0],
@@ -635,12 +646,15 @@ func (p *Provider) CreateKube(m *model.Kube, action *core.Action) error {
 	})
 
 	provisioner.addStep("waiting for Kubernetes", func() error {
+
+		k8s := &core.KubernetesClient{Kube: m}
+
 		return action.CancellableWaitFor("Kubernetes API and first minion", 20*time.Minute, time.Second, func() (bool, error) {
-			nodes, err := p.Core.K8S(m).Nodes().List()
+			nodes, err := k8s.ListNodes("")
 			if err != nil {
 				return false, nil
 			}
-			return len(nodes.Items) > 0, nil
+			return len(nodes) > 0, nil
 		})
 	})
 
@@ -888,37 +902,38 @@ func (p *Provider) CreateEntrypoint(m *model.Entrypoint, action *core.Action) er
 	return p.createELB(m)
 }
 
-func (p *Provider) AddPortToEntrypoint(m *model.Entrypoint, lbPort int64, nodePort int64) error {
+func (p *Provider) DeleteEntrypoint(m *model.Entrypoint) error {
+	return p.deleteELB(m)
+}
+
+func (p *Provider) CreateEntrypointListener(m *model.EntrypointListener) error {
 	input := &elb.CreateLoadBalancerListenersInput{
-		LoadBalancerName: aws.String(m.ProviderID),
+		LoadBalancerName: aws.String(m.Entrypoint.ProviderID),
 		Listeners: []*elb.Listener{
 			{
-				LoadBalancerPort: aws.Int64(lbPort),
-				InstancePort:     aws.Int64(nodePort),
-				Protocol:         aws.String("TCP"),
+				LoadBalancerPort: aws.Int64(m.EntrypointPort),
+				Protocol:         aws.String(m.EntrypointProtocol),
+				InstancePort:     aws.Int64(m.NodePort),
+				InstanceProtocol: aws.String(m.NodeProtocol),
 			},
 		},
 	}
-	_, err := p.elb(m.Kube.AWSConfig.Region).CreateLoadBalancerListeners(input)
+	_, err := p.elb(m.Entrypoint.Kube.AWSConfig.Region).CreateLoadBalancerListeners(input)
 	return err
 }
 
-func (p *Provider) RemovePortFromEntrypoint(m *model.Entrypoint, lbPort int64) error {
-	params := &elb.DeleteLoadBalancerListenersInput{
-		LoadBalancerName: aws.String(m.ProviderID),
+func (p *Provider) DeleteEntrypointListener(m *model.EntrypointListener) error {
+	input := &elb.DeleteLoadBalancerListenersInput{
+		LoadBalancerName: aws.String(m.Entrypoint.ProviderID),
 		LoadBalancerPorts: []*int64{
-			aws.Int64(lbPort),
+			aws.Int64(m.EntrypointPort),
 		},
 	}
-	_, err := p.elb(m.Kube.AWSConfig.Region).DeleteLoadBalancerListeners(params)
+	_, err := p.elb(m.Entrypoint.Kube.AWSConfig.Region).DeleteLoadBalancerListeners(input)
 	if isErrAndNotAWSNotFound(err) {
 		return err
 	}
 	return nil
-}
-
-func (p *Provider) DeleteEntrypoint(m *model.Entrypoint) error {
-	return p.deleteELB(m)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1251,7 +1266,7 @@ func (p *Provider) forceDetachVolume(volume *model.Volume) error {
 
 func (p *Provider) createSnapshot(volume *model.Volume) (*ec2.Snapshot, error) {
 	input := &ec2.CreateSnapshotInput{
-		Description: aws.String(fmt.Sprintf("%s-%d", volume.Name, volume.Instance.ReleaseID)),
+		Description: aws.String(fmt.Sprintf("%s-%s", volume.Name, time.Now())),
 		VolumeId:    aws.String(volume.ProviderID),
 	}
 	snapshot, err := p.ec2(volume.Kube.AWSConfig.Region).CreateSnapshot(input)

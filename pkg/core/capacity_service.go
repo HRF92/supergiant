@@ -5,8 +5,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/supergiant/guber"
 	"github.com/supergiant/supergiant/pkg/model"
+	kapi "k8s.io/kubernetes/pkg/api"
 )
 
 type CapacityService struct {
@@ -90,7 +90,7 @@ func (s *KubeScaler) Scale() error {
 		projectedNodes = append(projectedNodes, &projectedNode{
 			false,
 			s.largestNodeSize,
-			[]*guber.Pod{pod},
+			[]kapi.Pod{pod},
 		})
 	}
 
@@ -184,7 +184,7 @@ func (s *KubeScaler) Scale() error {
 	// for _, pnode := range projectedNodes {
 	// 	fmt.Println(pnode.Size.ID)
 	// 	for _, pod := range pnode.Pods {
-	// 		fmt.Println(pod.Metadata.Name)
+	// 		fmt.Println(pod.ObjectMeta.Name)
 	// 		for _, container := range pod.Spec.Containers {
 	// 			if container.Resources != nil && container.Resources.Limits != nil {
 	// 				fmt.Println(container.Resources.Limits.CPU)
@@ -241,16 +241,15 @@ func (s *KubeScaler) Scale() error {
 ////////////////////////////////////////////////////////////////////////////////
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 
-func (s *KubeScaler) hasTrackedEvent(pod *guber.Pod) (bool, error) {
-	q := &guber.QueryParams{
-		FieldSelector: "involvedObject.name=" + pod.Metadata.Name,
-	}
-	events, err := s.core.K8S(s.kube).Events("").Query(q)
+func (s *KubeScaler) hasTrackedEvent(pod kapi.Pod) (bool, error) {
+	k8s := &KubernetesClient{s.kube}
+
+	events, err := k8s.ListEvents("fieldSelector=involvedObject.name=" + pod.ObjectMeta.Name)
 	if err != nil {
 		return false, err
 	}
 
-	for _, event := range events.Items {
+	for _, event := range events {
 		for _, message := range trackedEventMessages {
 			if strings.Contains(event.Message, message) {
 				return true, nil
@@ -260,21 +259,20 @@ func (s *KubeScaler) hasTrackedEvent(pod *guber.Pod) (bool, error) {
 	return false, nil
 }
 
-func (s *KubeScaler) incomingPods() (incomingPods []*guber.Pod, err error) {
+func (s *KubeScaler) incomingPods() (incomingPods []kapi.Pod, err error) {
 	waitStart := time.Now()
+
+	k8s := &KubernetesClient{s.kube}
 
 	for {
 		incomingPods = incomingPods[:0] // reset
 
-		q := &guber.QueryParams{
-			FieldSelector: "status.phase=Pending",
-		}
-		pendingPods, err := s.core.K8S(s.kube).Pods("").Query(q)
+		pendingPods, err := k8s.ListPods("fieldSelector=status.phase=Pending")
 		if err != nil {
 			return nil, err
 		}
 
-		for _, pod := range pendingPods.Items {
+		for _, pod := range pendingPods {
 			hasTrackedEvent, err := s.hasTrackedEvent(pod)
 			if err != nil {
 				return nil, err
@@ -291,7 +289,7 @@ func (s *KubeScaler) incomingPods() (incomingPods []*guber.Pod, err error) {
 			s.core.Log.Infof("Waiting to add nodes for %d pods; %.1f seconds elapsed", incomingCount, elapsed.Seconds())
 
 			for _, pod := range incomingPods {
-				fmt.Println(pod.Metadata.Name)
+				fmt.Println(pod.ObjectMeta.Name)
 			}
 
 			time.Sleep(5 * time.Second)
@@ -308,7 +306,7 @@ func (s *KubeScaler) incomingPods() (incomingPods []*guber.Pod, err error) {
 type projectedNode struct {
 	Committed bool
 	Size      *NodeSize
-	Pods      []*guber.Pod
+	Pods      []kapi.Pod
 }
 
 func (pnode *projectedNode) usedRAM() (u float64) {
@@ -320,22 +318,17 @@ func (pnode *projectedNode) usedRAM() (u float64) {
 			// could utilize. This will ensure that the user's limit CAN BE FILLED AT
 			// ALL. This is at the core of our increased-utilization strategy.
 
-			var memStr string
-
 			if container.Resources.Limits != nil {
-				memStr = container.Resources.Limits.Memory
+				u += float64(container.Resources.Limits.Memory().Value())
 			} else if container.Resources.Requests != nil {
-				memStr = container.Resources.Requests.Memory
+				u += float64(container.Resources.Requests.Memory().Value())
 			} else {
 				continue
 			}
 
-			b := new(model.BytesValue)
-			if err := b.UnmarshalJSON([]byte(memStr)); err != nil {
-				panic(err)
-			}
+			// TODO
+			fmt.Printf("------------ usedRAM (in GiB) is now at %f", u)
 
-			u += b.Gibibytes()
 		}
 	}
 	return
@@ -347,21 +340,17 @@ func (pnode *projectedNode) usedCPU() (u float64) {
 
 			// NOTE above in usedRAM
 
-			var cpuStr string
-
 			if container.Resources.Limits != nil {
-				cpuStr = container.Resources.Limits.CPU
+				u += float64(container.Resources.Limits.Cpu().Value())
 			} else if container.Resources.Requests != nil {
-				cpuStr = container.Resources.Requests.CPU
+				u += float64(container.Resources.Requests.Cpu().Value())
 			} else {
 				continue
 			}
 
-			c := new(model.CoresValue)
-			if err := c.UnmarshalJSON([]byte(cpuStr)); err != nil {
-				panic(err)
-			}
-			u += c.Cores()
+			// TODO
+			fmt.Printf("------------ usedCPU (in Cores) is now at %f", u)
+
 		}
 	}
 	return
@@ -370,7 +359,7 @@ func (pnode *projectedNode) usedCPU() (u float64) {
 func (pnode *projectedNode) usedVolumes() (u int) {
 	for _, pod := range pnode.Pods {
 		for _, vol := range pod.Spec.Volumes {
-			if vol.AwsElasticBlockStore != nil {
+			if vol.AWSElasticBlockStore != nil {
 				u++
 			}
 		}

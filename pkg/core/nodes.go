@@ -1,12 +1,6 @@
 package core
 
-import (
-	"regexp"
-	"strconv"
-
-	"github.com/supergiant/guber"
-	"github.com/supergiant/supergiant/pkg/model"
-)
+import "github.com/supergiant/supergiant/pkg/model"
 
 type Nodes struct {
 	Collection
@@ -77,43 +71,17 @@ func (c *Nodes) Delete(id *int64, m *model.Node) *Action {
 ////////////////////////////////////////////////////////////////////////////////
 
 func (c *Nodes) hasPodsWithReservedResources(m *model.Node) (bool, error) {
-	q := &guber.QueryParams{
-		FieldSelector: "spec.nodeName=" + m.Name + ",status.phase=Running",
-	}
-	pods, err := c.core.K8S(m.Kube).Pods("").Query(q)
+	k8s := &KubernetesClient{m.Kube}
+	pods, err := k8s.ListPods("fieldSelector=spec.nodeName=" + m.Name + ",status.phase=Running")
 	if err != nil {
 		return false, err
 	}
 
-	rxp := regexp.MustCompile("[0-9]+")
-
-	for _, pod := range pods.Items {
+	for _, pod := range pods {
 		for _, container := range pod.Spec.Containers {
 			reqs := container.Resources.Requests
-
-			if reqs == nil {
-				continue
-			}
-
-			values := [2]string{
-				reqs.CPU,
-				reqs.Memory,
-			}
-
-			for _, val := range values {
-				numstr := rxp.FindString(val)
-				num := 0
-				var err error
-				if numstr != "" {
-					num, err = strconv.Atoi(numstr)
-					if err != nil {
-						return false, err
-					}
-				}
-
-				if num > 0 {
-					return true, nil
-				}
+			if reqs != nil && (reqs.Cpu().Value()+reqs.Memory().Value()) > 0 {
+				return true, nil
 			}
 		}
 	}

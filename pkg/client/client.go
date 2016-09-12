@@ -20,18 +20,14 @@ type Client struct {
 
 	httpClient *http.Client
 
-	Sessions         *Sessions
-	Users            *Users
-	CloudAccounts    *CloudAccounts
-	Kubes            *Kubes
-	Apps             *Apps
-	Components       *Components
-	Releases         *Releases
-	Instances        *Instances
-	Volumes          *Volumes
-	PrivateImageKeys *PrivateImageKeys
-	Entrypoints      *Entrypoints
-	Nodes            *Nodes
+	Sessions            *Sessions
+	Users               *Users
+	CloudAccounts       *CloudAccounts
+	Kubes               *Kubes
+	Volumes             *Volumes
+	Entrypoints         *Entrypoints
+	EntrypointListeners *EntrypointListeners
+	Nodes               *Nodes
 }
 
 func New(url string, authType string, authToken string, certFile string) *Client {
@@ -65,13 +61,9 @@ func New(url string, authType string, authToken string, certFile string) *Client
 	client.Users = &Users{Collection{client, "users"}}
 	client.CloudAccounts = &CloudAccounts{Collection{client, "cloud_accounts"}}
 	client.Kubes = &Kubes{Collection{client, "kubes"}}
-	client.Apps = &Apps{Collection{client, "apps"}}
-	client.Components = &Components{Collection{client, "components"}}
-	client.Releases = &Releases{Collection{client, "releases"}}
-	client.Instances = &Instances{Collection{client, "instances"}}
 	client.Volumes = &Volumes{Collection{client, "volumes"}}
-	client.PrivateImageKeys = &PrivateImageKeys{Collection{client, "private_image_keys"}}
 	client.Entrypoints = &Entrypoints{Collection{client, "entrypoints"}}
+	client.EntrypointListeners = &EntrypointListeners{Collection{client, "entrypoint_listeners"}}
 	client.Nodes = &Nodes{Collection{client, "nodes"}}
 
 	return client

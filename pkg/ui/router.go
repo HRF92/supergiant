@@ -70,34 +70,19 @@ func NewRouter(c *core.Core, baseRouter *mux.Router) *mux.Router {
 	r.HandleFunc("/kubes/{id}", restrictedHandler(c, GetKube)).Methods("GET")
 	r.HandleFunc("/kubes/{id}/delete", restrictedHandler(c, DeleteKube)).Methods("PUT")
 
-	r.HandleFunc("/apps/new", restrictedHandler(c, NewApp)).Methods("GET")
-	r.HandleFunc("/apps", restrictedHandler(c, CreateApp)).Methods("POST")
-	r.HandleFunc("/apps", restrictedHandler(c, ListApps)).Methods("GET")
-	r.HandleFunc("/apps/{id}", restrictedHandler(c, GetApp)).Methods("GET")
-	r.HandleFunc("/apps/{id}/delete", restrictedHandler(c, DeleteApp)).Methods("PUT")
+	r.HandleFunc("/nodes/new", restrictedHandler(c, NewNode)).Methods("GET")
+	r.HandleFunc("/nodes", restrictedHandler(c, CreateNode)).Methods("POST")
+	r.HandleFunc("/nodes", restrictedHandler(c, ListNodes)).Methods("GET")
+	r.HandleFunc("/nodes/{id}", restrictedHandler(c, GetNode)).Methods("GET")
+	r.HandleFunc("/nodes/{id}/delete", restrictedHandler(c, DeleteNode)).Methods("PUT")
 
-	r.HandleFunc("/components/new", restrictedHandler(c, NewComponent)).Methods("GET")
-	r.HandleFunc("/components", restrictedHandler(c, CreateComponent)).Methods("POST")
-	r.HandleFunc("/components", restrictedHandler(c, ListComponents)).Methods("GET")
-	r.HandleFunc("/components/{id}", restrictedHandler(c, GetComponent)).Methods("GET")
-	r.HandleFunc("/components/{id}/delete", restrictedHandler(c, DeleteComponent)).Methods("PUT")
-	r.HandleFunc("/components/{id}/deploy", restrictedHandler(c, DeployComponent)).Methods("PUT")
-	r.HandleFunc("/components/{id}/configure", restrictedHandler(c, ConfigureComponent)).Methods("GET")
-
-	r.HandleFunc("/releases", restrictedHandler(c, CreateRelease)).Methods("POST")
-	r.HandleFunc("/releases/{id}", restrictedHandler(c, UpdateRelease)).Methods("PUT")
-
-	r.HandleFunc("/instances", restrictedHandler(c, ListInstances)).Methods("GET")
-	r.HandleFunc("/instances/{id}", restrictedHandler(c, GetInstance)).Methods("GET")
-
+	r.HandleFunc("/volumes/new", restrictedHandler(c, NewVolume)).Methods("GET")
+	r.HandleFunc("/volumes", restrictedHandler(c, CreateVolume)).Methods("POST")
 	r.HandleFunc("/volumes", restrictedHandler(c, ListVolumes)).Methods("GET")
 	r.HandleFunc("/volumes/{id}", restrictedHandler(c, GetVolume)).Methods("GET")
-
-	r.HandleFunc("/private_image_keys/new", restrictedHandler(c, NewPrivateImageKey)).Methods("GET")
-	r.HandleFunc("/private_image_keys", restrictedHandler(c, CreatePrivateImageKey)).Methods("POST")
-	r.HandleFunc("/private_image_keys", restrictedHandler(c, ListPrivateImageKeys)).Methods("GET")
-	r.HandleFunc("/private_image_keys/{id}", restrictedHandler(c, GetPrivateImageKey)).Methods("GET")
-	r.HandleFunc("/private_image_keys/{id}/delete", restrictedHandler(c, DeletePrivateImageKey)).Methods("PUT")
+	r.HandleFunc("/volumes/{id}/edit", restrictedHandler(c, EditVolume)).Methods("GET")
+	r.HandleFunc("/volumes/{id}", restrictedHandler(c, UpdateVolume)).Methods("PUT")
+	r.HandleFunc("/volumes/{id}/delete", restrictedHandler(c, DeleteVolume)).Methods("PUT")
 
 	r.HandleFunc("/entrypoints/new", restrictedHandler(c, NewEntrypoint)).Methods("GET")
 	r.HandleFunc("/entrypoints", restrictedHandler(c, CreateEntrypoint)).Methods("POST")
@@ -105,11 +90,11 @@ func NewRouter(c *core.Core, baseRouter *mux.Router) *mux.Router {
 	r.HandleFunc("/entrypoints/{id}", restrictedHandler(c, GetEntrypoint)).Methods("GET")
 	r.HandleFunc("/entrypoints/{id}/delete", restrictedHandler(c, DeleteEntrypoint)).Methods("PUT")
 
-	r.HandleFunc("/nodes/new", restrictedHandler(c, NewNode)).Methods("GET")
-	r.HandleFunc("/nodes", restrictedHandler(c, CreateNode)).Methods("POST")
-	r.HandleFunc("/nodes", restrictedHandler(c, ListNodes)).Methods("GET")
-	r.HandleFunc("/nodes/{id}", restrictedHandler(c, GetNode)).Methods("GET")
-	r.HandleFunc("/nodes/{id}/delete", restrictedHandler(c, DeleteNode)).Methods("PUT")
+	r.HandleFunc("/entrypoint_listeners/new", restrictedHandler(c, NewEntrypointListener)).Methods("GET")
+	r.HandleFunc("/entrypoint_listeners", restrictedHandler(c, CreateEntrypointListener)).Methods("POST")
+	r.HandleFunc("/entrypoint_listeners", restrictedHandler(c, ListEntrypointListeners)).Methods("GET")
+	r.HandleFunc("/entrypoint_listeners/{id}", restrictedHandler(c, GetEntrypointListener)).Methods("GET")
+	r.HandleFunc("/entrypoint_listeners/{id}/delete", restrictedHandler(c, DeleteEntrypointListener)).Methods("PUT")
 
 	return baseRouter
 }
@@ -196,24 +181,6 @@ func uiRedirect(w http.ResponseWriter, r *http.Request) {
 //------------------------------------------------------------------------------
 
 func Root(sg *client.Client, w http.ResponseWriter, r *http.Request) error {
-	var cloudAccounts []*model.CloudAccount
-	if err := sg.CloudAccounts.List(&cloudAccounts); err != nil {
-		return err
-	}
-	if len(cloudAccounts) == 0 {
-		http.Redirect(w, r, "/ui/cloud_accounts/new", http.StatusFound)
-		return nil
-	}
-
-	var kubes []*model.Kube
-	if err := sg.Kubes.List(&kubes); err != nil {
-		return err
-	}
-	if len(kubes) == 0 {
-		http.Redirect(w, r, "/ui/kubes/new", http.StatusFound)
-		return nil
-	}
-
-	http.Redirect(w, r, "/ui/apps", http.StatusFound)
+	http.Redirect(w, r, "/ui/cloud_accounts", http.StatusFound)
 	return nil
 }

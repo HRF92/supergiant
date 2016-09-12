@@ -1,10 +1,6 @@
 package core
 
-import (
-	"fmt"
-
-	"github.com/supergiant/supergiant/pkg/model"
-)
+import "github.com/supergiant/supergiant/pkg/model"
 
 type Entrypoints struct {
 	Collection
@@ -52,40 +48,4 @@ func (c *Entrypoints) Delete(id *int64, m *model.Entrypoint) *Action {
 			return c.Collection.Delete(id, m)
 		},
 	}
-}
-
-func (c *Entrypoints) SetPort(id *int64, m *model.Entrypoint, elbPort int64, instancePort int64) error {
-	action := &Action{
-		Status: &model.ActionStatus{
-			Description: fmt.Sprintf("setting port %d:%d", elbPort, instancePort),
-			MaxRetries:  5,
-		},
-		core:       c.core,
-		scope:      c.core.DB.Preload("Kube.CloudAccount"),
-		model:      m,
-		id:         id,
-		resourceID: m.UUID,
-		fn: func(_ *Action) error {
-			return c.core.CloudAccounts.provider(m.Kube.CloudAccount).AddPortToEntrypoint(m, elbPort, instancePort)
-		},
-	}
-	return action.Now()
-}
-
-func (c *Entrypoints) RemovePort(id *int64, m *model.Entrypoint, elbPort int64) error {
-	action := &Action{
-		Status: &model.ActionStatus{
-			Description: fmt.Sprintf("removing port %d", elbPort),
-			MaxRetries:  5,
-		},
-		core:       c.core,
-		scope:      c.core.DB.Preload("Kube.CloudAccount"),
-		model:      m,
-		id:         id,
-		resourceID: m.UUID,
-		fn: func(_ *Action) error {
-			return c.core.CloudAccounts.provider(m.Kube.CloudAccount).RemovePortFromEntrypoint(m, elbPort)
-		},
-	}
-	return action.Now()
 }

@@ -17,7 +17,8 @@ type Provider interface {
 	DeleteVolume(*model.Volume) error
 
 	CreateEntrypoint(*model.Entrypoint, *Action) error
-	AddPortToEntrypoint(*model.Entrypoint, int64, int64) error
-	RemovePortFromEntrypoint(*model.Entrypoint, int64) error
 	DeleteEntrypoint(*model.Entrypoint) error
+
+	CreateEntrypointListener(*model.EntrypointListener) error
+	DeleteEntrypointListener(*model.EntrypointListener) error
 }

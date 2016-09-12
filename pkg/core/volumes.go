@@ -43,6 +43,16 @@ func (c *Volumes) Provision(id *int64, m *model.Volume) *Action {
 	}
 }
 
+func (c *Volumes) Update(id *int64, oldM *model.Volume, m *model.Volume) error {
+	if oldM.Size != m.Size {
+		// Resize expects the model arg to be the new size, and will save the record
+		// to update. (NOTE this may need a little work. Need to make sure all
+		// provider implementations are saving the model on resize.)
+		return c.Resize(id, m).Async()
+	}
+	return c.Collection.Update(id, oldM, m)
+}
+
 func (c *Volumes) Delete(id *int64, m *model.Volume) *Action {
 	return &Action{
 		Status: &model.ActionStatus{

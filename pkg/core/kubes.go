@@ -1,29 +1,9 @@
 package core
 
 import (
-	"crypto/tls"
-	"net/http"
-	"time"
-
-	"github.com/supergiant/guber"
 	"github.com/supergiant/supergiant/pkg/model"
 	"github.com/supergiant/supergiant/pkg/util"
 )
-
-// TODO
-var globalK8SHTTPClient = &http.Client{
-	Timeout: 30 * time.Second,
-	Transport: &http.Transport{
-		TLSHandshakeTimeout: 10 * time.Second,
-		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: true,
-		},
-	},
-}
-
-func (c *Core) K8S(m *model.Kube) guber.Client {
-	return guber.NewClient(m.MasterPublicIP, m.Username, m.Password, globalK8SHTTPClient)
-}
 
 //------------------------------------------------------------------------------
 
@@ -64,7 +44,7 @@ func (c *Kubes) Delete(id *int64, m *model.Kube) *Action {
 			MaxRetries:  5,
 		},
 		core:           c.core,
-		scope:          c.core.DB.Preload("CloudAccount").Preload("Entrypoints").Preload("Volumes.Kube.CloudAccount").Preload("Apps.Components.Instances").Preload("Apps.Components.Releases").Preload("Nodes.Kube.CloudAccount"),
+		scope:          c.core.DB.Preload("CloudAccount").Preload("Entrypoints").Preload("Volumes.Kube.CloudAccount").Preload("Nodes.Kube.CloudAccount"),
 		model:          m,
 		id:             id,
 		cancelExisting: true,
@@ -80,31 +60,6 @@ func (c *Kubes) Delete(id *int64, m *model.Kube) *Action {
 					return err
 				}
 			}
-
-			// Delete App records -- no need to delete assets
-			// TODO... might be better to have Kubernetes-related operations first
-			// check to see if Kube is flagged for delete?
-			for _, app := range m.Apps {
-				if err := c.core.DB.Delete(app); err != nil {
-					return err
-				}
-				for _, component := range app.Components {
-					if err := c.core.DB.Delete(component); err != nil {
-						return err
-					}
-					for _, release := range component.Releases {
-						if err := c.core.DB.Delete(release); err != nil {
-							return err
-						}
-					}
-					for _, instance := range component.Instances {
-						if err := c.core.DB.Delete(instance); err != nil {
-							return err
-						}
-					}
-				}
-			}
-
 			// Delete Volumes
 			for _, volume := range m.Volumes {
 				if err := c.core.Volumes.Delete(volume.ID, volume).Now(); err != nil {

@@ -10,9 +10,6 @@ type Kube struct {
 	// has_many Nodes
 	Nodes []*Node `json:"nodes,omitempty"`
 
-	// has_many Apps
-	Apps []*App `json:"apps,omitempty"`
-
 	// has_many Entrypoints
 	Entrypoints []*Entrypoint `json:"entrypoints,omitempty"`
 

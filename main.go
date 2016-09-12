@@ -93,8 +93,13 @@ func main() {
 		},
 		cli.BoolFlag{
 			Name:        "ui-enabled",
-			Usage:       "Enabled UI",
+			Usage:       "Enable UI",
 			Destination: &c.UIEnabled,
+		},
+		cli.BoolFlag{
+			Name:        "capacity-service-enabled",
+			Usage:       "Enable Capacity Service (automated server management)",
+			Destination: &c.CapacityServiceEnabled,
 		},
 		cli.StringFlag{
 			Name:        "https-port",

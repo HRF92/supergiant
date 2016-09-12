@@ -1,6 +1,7 @@
 {
   "sqlite_file": "tmp/development.db",
   "ui_enabled": true,
+  "capacity_service_enabled": true,
   "publish_host": "localhost",
   "http_port": "8080",
   "https_port": "8081",

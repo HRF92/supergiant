@@ -26,19 +26,20 @@ type NodeSize struct {
 type Settings struct {
 	ConfigFilePath string
 
-	UIEnabled   bool   `json:"ui_enabled"`
-	PsqlHost    string `json:"psql_host"`
-	PsqlDb      string `json:"psql_db"`
-	PsqlUser    string `json:"psql_user"`
-	PsqlPass    string `json:"psql_pass"`
-	SQLiteFile  string `json:"sqlite_file"`
-	PublishHost string `json:"publish_host"`
-	HTTPPort    string `json:"http_port"`
-	HTTPSPort   string `json:"https_port"`
-	SSLCertFile string `json:"ssl_cert_file"`
-	SSLKeyFile  string `json:"ssl_key_file"`
-	LogPath     string `json:"log_file"`
-	LogLevel    string `json:"log_level"`
+	PsqlHost               string `json:"psql_host"`
+	PsqlDb                 string `json:"psql_db"`
+	PsqlUser               string `json:"psql_user"`
+	PsqlPass               string `json:"psql_pass"`
+	SQLiteFile             string `json:"sqlite_file"`
+	PublishHost            string `json:"publish_host"`
+	HTTPPort               string `json:"http_port"`
+	HTTPSPort              string `json:"https_port"`
+	SSLCertFile            string `json:"ssl_cert_file"`
+	SSLKeyFile             string `json:"ssl_key_file"`
+	LogPath                string `json:"log_file"`
+	LogLevel               string `json:"log_level"`
+	UIEnabled              bool   `json:"ui_enabled"`
+	CapacityServiceEnabled bool   `json:"capacity_service_enabled"`
 
 	// NOTE these MUST be provided in ascending order by cost in order to
 	// correctly provision the smallest size on Kube creation
@@ -188,30 +189,34 @@ func (c *Core) InitializeForeground() error {
 // InitializeBackground starts Action processing and RecurringServices for *Core.
 func (c *Core) InitializeBackground() {
 	// Recurring services
-	capacityService := &RecurringService{
-		core:     c,
-		service:  &CapacityService{c},
-		interval: 30 * time.Second,
+	if c.CapacityServiceEnabled {
+		capacityService := &RecurringService{
+			core:     c,
+			service:  &CapacityService{c},
+			interval: 30 * time.Second,
+		}
+		go capacityService.Run()
 	}
+
 	nodeObserver := &RecurringService{
 		core:     c,
 		service:  &NodeObserver{c},
 		interval: 30 * time.Second,
 	}
+	go nodeObserver.Run()
+
 	instanceObserver := &RecurringService{
 		core:     c,
 		service:  &InstanceObserver{c},
 		interval: 30 * time.Second,
 	}
+	go instanceObserver.Run()
+
 	sessionExpirer := &RecurringService{
 		core:     c,
 		service:  &SessionExpirer{c},
 		interval: 15 * time.Second,
 	}
-
-	go capacityService.Run()
-	go nodeObserver.Run()
-	go instanceObserver.Run()
 	go sessionExpirer.Run()
 }
 

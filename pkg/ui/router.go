@@ -54,7 +54,7 @@ func NewRouter(c *core.Core, baseRouter *mux.Router) *mux.Router {
 	r.HandleFunc("/users", restrictedHandler(c, ListUsers)).Methods("GET")
 	r.HandleFunc("/users/{id}", restrictedHandler(c, GetUser)).Methods("GET")
 	r.HandleFunc("/users/{id}/edit", restrictedHandler(c, EditUser)).Methods("GET")
-	r.HandleFunc("/users/{id}", restrictedHandler(c, UpdateUser)).Methods("PUT")
+	r.HandleFunc("/users/{id}", restrictedHandler(c, UpdateUser)).Methods("POST")
 	r.HandleFunc("/users/{id}/delete", restrictedHandler(c, DeleteUser)).Methods("PUT")
 	r.HandleFunc("/users/{id}/regenerate_api_token", restrictedHandler(c, RegenerateUserAPIToken)).Methods("PUT")
 
@@ -81,7 +81,7 @@ func NewRouter(c *core.Core, baseRouter *mux.Router) *mux.Router {
 	r.HandleFunc("/volumes", restrictedHandler(c, ListVolumes)).Methods("GET")
 	r.HandleFunc("/volumes/{id}", restrictedHandler(c, GetVolume)).Methods("GET")
 	r.HandleFunc("/volumes/{id}/edit", restrictedHandler(c, EditVolume)).Methods("GET")
-	r.HandleFunc("/volumes/{id}", restrictedHandler(c, UpdateVolume)).Methods("PUT")
+	r.HandleFunc("/volumes/{id}", restrictedHandler(c, UpdateVolume)).Methods("POST")
 	r.HandleFunc("/volumes/{id}/delete", restrictedHandler(c, DeleteVolume)).Methods("PUT")
 
 	r.HandleFunc("/entrypoints/new", restrictedHandler(c, NewEntrypoint)).Methods("GET")

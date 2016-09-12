@@ -13,8 +13,8 @@ import (
 
 type HeapsterMetric struct {
 	Name     string `json:"name"`
-	CPUUsage int64  `json:"cpu_usage"`
-	RAMUsage int64  `json:"mem_usage"`
+	CPUUsage int64  `json:"cpuUsage"`
+	RAMUsage int64  `json:"memUsage"`
 }
 
 type KubernetesInterface interface {
@@ -43,7 +43,7 @@ type KubernetesClient struct {
 }
 
 func (k *KubernetesClient) ListNamespaces(query string) ([]kapi.Namespace, error) {
-	var list *kapi.NamespaceList
+	list := new(kapi.NamespaceList)
 	if err := k.requestInto("GET", "namespaces?"+query, list); err != nil {
 		return nil, err
 	}
@@ -51,7 +51,7 @@ func (k *KubernetesClient) ListNamespaces(query string) ([]kapi.Namespace, error
 }
 
 func (k *KubernetesClient) ListNodes(query string) ([]kapi.Node, error) {
-	var list *kapi.NodeList
+	list := new(kapi.NodeList)
 	if err := k.requestInto("GET", "nodes?"+query, list); err != nil {
 		return nil, err
 	}
@@ -59,7 +59,7 @@ func (k *KubernetesClient) ListNodes(query string) ([]kapi.Node, error) {
 }
 
 func (k *KubernetesClient) ListPods(query string) ([]kapi.Pod, error) {
-	var list *kapi.PodList
+	list := new(kapi.PodList)
 	if err := k.requestInto("GET", "pods?"+query, list); err != nil {
 		return nil, err
 	}
@@ -67,21 +67,23 @@ func (k *KubernetesClient) ListPods(query string) ([]kapi.Pod, error) {
 }
 
 func (k *KubernetesClient) ListEvents(query string) ([]kapi.Event, error) {
-	var list *kapi.EventList
+	list := new(kapi.EventList)
 	if err := k.requestInto("GET", "events?"+query, list); err != nil {
 		return nil, err
 	}
 	return list.Items, nil
 }
 
-func (k *KubernetesClient) ListNodeHeapsterMetrics() (metrics []*HeapsterMetric, err error) {
-	err = k.requestInto("GET", "proxy/namespaces/Kube-system/services/heapster/api/v1/model/nodes", metrics)
-	return
+func (k *KubernetesClient) ListNodeHeapsterMetrics() ([]*HeapsterMetric, error) {
+	var metrics []*HeapsterMetric
+	err := k.requestInto("GET", "proxy/namespaces/kube-system/services/heapster/api/v1/model/nodes", &metrics)
+	return metrics, err
 }
 
-func (k *KubernetesClient) ListPodHeapsterMetrics(namespace string) (metrics []*HeapsterMetric, err error) {
-	err = k.requestInto("GET", "proxy/namespaces/Kube-system/services/heapster/api/v1/model/namespaces/"+namespace+"/pods", metrics)
-	return
+func (k *KubernetesClient) ListPodHeapsterMetrics(namespace string) ([]*HeapsterMetric, error) {
+	var metrics []*HeapsterMetric
+	err := k.requestInto("GET", "proxy/namespaces/kube-system/services/heapster/api/v1/model/namespaces/"+namespace+"/pods", &metrics)
+	return metrics, err
 }
 
 // Private

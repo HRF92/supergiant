@@ -40,7 +40,10 @@ func (c *EntrypointListeners) Delete(id *int64, m *model.EntrypointListener) *Ac
 		id:         id,
 		resourceID: m.UUID,
 		fn: func(_ *Action) error {
-			return c.core.CloudAccounts.provider(m.Entrypoint.Kube.CloudAccount).DeleteEntrypointListener(m)
+			if err := c.core.CloudAccounts.provider(m.Entrypoint.Kube.CloudAccount).DeleteEntrypointListener(m); err != nil {
+				return err
+			}
+			return c.Collection.Delete(id, m)
 		},
 	}
 }

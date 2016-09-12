@@ -16,7 +16,6 @@ func NewKube(sg *client.Client, w http.ResponseWriter, r *http.Request) error {
 	return renderTemplate(w, "new", map[string]interface{}{
 		"title":      "Kubes",
 		"formAction": "/ui/kubes",
-		"formMethod": "POST",
 		"model": map[string]interface{}{
 			"cloud_account_id": nil,
 			"name":             "",
@@ -47,7 +46,6 @@ func CreateKube(sg *client.Client, w http.ResponseWriter, r *http.Request) error
 		return renderTemplate(w, "new", map[string]interface{}{
 			"title":      "Kubes",
 			"formAction": "/ui/kubes",
-			"formMethod": "POST",
 			"model":      m,
 			"error":      err.Error(),
 		})

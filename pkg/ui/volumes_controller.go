@@ -12,7 +12,6 @@ func NewVolume(sg *client.Client, w http.ResponseWriter, r *http.Request) error 
 	return renderTemplate(w, "new", map[string]interface{}{
 		"title":      "Volumes",
 		"formAction": "/ui/volumes",
-		"formMethod": "POST",
 		"model": map[string]interface{}{
 			"kube_id": nil,
 			"name":    "",
@@ -31,7 +30,6 @@ func CreateVolume(sg *client.Client, w http.ResponseWriter, r *http.Request) err
 		return renderTemplate(w, "new", map[string]interface{}{
 			"title":      "Volumes",
 			"formAction": "/ui/volumes",
-			"formMethod": "POST",
 			"model":      m,
 			"error":      err.Error(),
 		})
@@ -103,10 +101,9 @@ func EditVolume(sg *client.Client, w http.ResponseWriter, r *http.Request) error
 	if err := sg.Volumes.Get(id, item); err != nil {
 		return err
 	}
-	return renderTemplate(w, "edit", map[string]interface{}{
+	return renderTemplate(w, "new", map[string]interface{}{
 		"title":      "Volumes",
 		"formAction": fmt.Sprintf("/ui/volumes/%d", *id),
-		"formMethod": "PUT",
 		"model": map[string]interface{}{
 			"size": item.Size,
 		},
@@ -123,10 +120,9 @@ func UpdateVolume(sg *client.Client, w http.ResponseWriter, r *http.Request) err
 		return err
 	}
 	if err := sg.Volumes.Update(id, m); err != nil {
-		return renderTemplate(w, "edit", map[string]interface{}{
+		return renderTemplate(w, "new", map[string]interface{}{
 			"title":      "Volumes",
 			"formAction": fmt.Sprintf("/ui/volumes/%d", *id),
-			"formMethod": "PUT",
 			"model":      m,
 			"error":      err.Error(),
 		})

@@ -6,11 +6,16 @@ type Volumes struct {
 	Collection
 }
 
-func (c *Volumes) Provision(id *int64, m *model.Volume) *Action {
-	return &Action{
+func (c *Volumes) Create(m *model.Volume) error {
+	if err := c.Collection.Create(m); err != nil {
+		return err
+	}
+	if err := c.core.DB.Preload("CloudAccount").First(m.Kube, m.KubeID); err != nil {
+		return err
+	}
+	action := &Action{
 		Status: &model.ActionStatus{
 			Description: "provisioning",
-
 			// TODO
 			// This resource has an issue with retryable provisioning -- which in this
 			// context means creating an remote asset from the local record.
@@ -33,24 +38,27 @@ func (c *Volumes) Provision(id *int64, m *model.Volume) *Action {
 			// error, the user will know about it quickly, instead of after 20 retries.
 			MaxRetries: 1,
 		},
-		core:  c.core,
-		scope: c.core.DB.Preload("Instance").Preload("Kube.CloudAccount"),
-		model: m,
-		id:    id,
+		core:       c.core,
+		resourceID: m.UUID,
+		model:      m,
 		fn: func(a *Action) error {
 			return c.core.CloudAccounts.provider(m.Kube.CloudAccount).CreateVolume(m, a)
 		},
 	}
+	return action.Async()
 }
 
 func (c *Volumes) Update(id *int64, oldM *model.Volume, m *model.Volume) error {
+	if err := c.Collection.Update(id, oldM, m); err != nil {
+		return err
+	}
 	if oldM.Size != m.Size {
 		// Resize expects the model arg to be the new size, and will save the record
 		// to update. (NOTE this may need a little work. Need to make sure all
 		// provider implementations are saving the model on resize.)
 		return c.Resize(id, m).Async()
 	}
-	return c.Collection.Update(id, oldM, m)
+	return nil
 }
 
 func (c *Volumes) Delete(id *int64, m *model.Volume) *Action {
@@ -60,7 +68,7 @@ func (c *Volumes) Delete(id *int64, m *model.Volume) *Action {
 			MaxRetries:  5,
 		},
 		core:  c.core,
-		scope: c.core.DB.Preload("Instance").Preload("Kube.CloudAccount"),
+		scope: c.core.DB.Preload("Kube.CloudAccount"),
 		model: m,
 		id:    id,
 		fn: func(_ *Action) error {
@@ -79,7 +87,7 @@ func (c *Volumes) Resize(id *int64, m *model.Volume) *Action {
 			Description: "resizing",
 		},
 		core:  c.core,
-		scope: c.core.DB.Preload("Instance").Preload("Kube.CloudAccount"),
+		scope: c.core.DB.Preload("Kube.CloudAccount"),
 		model: m,
 		id:    id,
 		fn: func(a *Action) error {
@@ -94,7 +102,7 @@ func (c *Volumes) WaitForAvailable(id *int64, m *model.Volume) error {
 			Description: "waiting for available",
 		},
 		core:  c.core,
-		scope: c.core.DB.Preload("Instance").Preload("Kube.CloudAccount"),
+		scope: c.core.DB.Preload("Kube.CloudAccount"),
 		model: m,
 		id:    id,
 		fn: func(a *Action) error {

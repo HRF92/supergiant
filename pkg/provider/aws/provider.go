@@ -884,6 +884,9 @@ func (p *Provider) ResizeVolume(m *model.Volume, action *core.Action) error {
 	if err := p.createVolume(m, snapshot.SnapshotId); err != nil {
 		return err
 	}
+	if err := p.waitForAvailable(m); err != nil {
+		return err
+	}
 	if err := p.deleteSnapshot(m, snapshot); err != nil {
 		p.Core.Log.Errorf("Error deleting snapshot %s: %s", *snapshot.SnapshotId, err.Error())
 	}
@@ -1217,6 +1220,9 @@ func (p *Provider) createVolume(volume *model.Volume, snapshotID *string) error 
 }
 
 func (p *Provider) deleteVolume(volume *model.Volume) error {
+	if volume.ProviderID == "" {
+		return nil
+	}
 	if err := p.waitForAvailable(volume); err != nil {
 		return err
 	}

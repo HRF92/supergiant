@@ -11,7 +11,6 @@ func NewCloudAccount(sg *client.Client, w http.ResponseWriter, r *http.Request) 
 	return renderTemplate(w, "new", map[string]interface{}{
 		"title":      "Cloud Accounts",
 		"formAction": "/ui/cloud_accounts",
-		"formMethod": "POST",
 		"model": map[string]interface{}{
 			"name":     "",
 			"provider": "",
@@ -32,7 +31,6 @@ func CreateCloudAccount(sg *client.Client, w http.ResponseWriter, r *http.Reques
 		return renderTemplate(w, "new", map[string]interface{}{
 			"title":      "Cloud Accounts",
 			"formAction": "/ui/cloud_accounts",
-			"formMethod": "POST",
 			"model":      m,
 			"error":      err.Error(),
 		})

@@ -8,14 +8,14 @@
             <div class="alert alert-danger" role="alert">{{ .error }}</div>
           {{ end }}
 
-          <form method="{{ .formMethod }}" action="{{ .formAction }}">
+          <form method="POST" action="{{ .formAction }}">
 
             <div class="form-group">
               <textarea rows=20 class="form-control" name="json_input"></textarea>
             </div>
 
             <button type="submit" class="btn btn-primary">
-              Create
+              Save
             </button>
 
           </form>

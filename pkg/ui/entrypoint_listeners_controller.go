@@ -11,7 +11,6 @@ func NewEntrypointListener(sg *client.Client, w http.ResponseWriter, r *http.Req
 	return renderTemplate(w, "new", map[string]interface{}{
 		"title":      "Entrypoint Listeners",
 		"formAction": "/ui/entrypoint_listeners",
-		"formMethod": "POST",
 		"model": map[string]interface{}{
 			"entrypoint_id":       nil,
 			"entrypoint_port":     0,
@@ -31,7 +30,6 @@ func CreateEntrypointListener(sg *client.Client, w http.ResponseWriter, r *http.
 		return renderTemplate(w, "new", map[string]interface{}{
 			"title":      "Entrypoint Listeners",
 			"formAction": "/ui/entrypoint_listeners",
-			"formMethod": "POST",
 			"model":      m,
 			"error":      err.Error(),
 		})

@@ -172,8 +172,14 @@ func (p *Provider) CreateNode(m *model.Node, action *core.Action) error {
 	if err != nil {
 		return err
 	}
+
+	data := struct {
+		*model.Node
+		Token string
+	}{m, p.Token}
+
 	var minionUserdata bytes.Buffer
-	if err = minionTemplate.Execute(&minionUserdata, m); err != nil {
+	if err = minionTemplate.Execute(&minionUserdata, data); err != nil {
 		return err
 	}
 

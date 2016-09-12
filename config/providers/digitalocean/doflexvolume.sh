@@ -1,5 +1,12 @@
 #!/bin/bash
 
+## Required Flex Volume Options.
+##{
+##  "volumeID": "bar",
+##  "name": "foo"
+##}
+
+
 ## Who am i?
 ## Where am i?
 REGION=$(doctl compute droplet list | grep ${COREOS_PUBLIC_IPV4} | awk '{print $7}')
@@ -34,12 +41,11 @@ ismounted() {
 
 attach() {
 	VOLUMEID=$(echo $1 | jq -r '.volumeID')
-	SIZE=$(echo $1 | jq -r '.size')
+	VOLUMENAME=$(echo $1 | jq -r '.name')
 
-	# LVM substitutes - with --
-	VOLUMEID=`echo $VOLUMEID|sed s/-/--/g`
+  doctl compute volume-action attach $VOLUMEID $DROPLET_ID
 
-	DMDEV="/dev/mapper/${VOLUMEID}"
+	DMDEV="/dev/disk/by-id/scsi-0DO_Volume_${VOLUMENAME}"
 	if [ ! -b "${DMDEV}" ]; then
 		err "{\"status\": \"Failure\", \"message\": \"Volume ${VOLUMEID} does not exist\"}"
 		exit 1

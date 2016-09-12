@@ -1,7 +1,7 @@
 {
 	"ImportPath": "github.com/supergiant/supergiant",
 	"GoVersion": "go1.6",
-	"GodepVersion": "v62",
+	"GodepVersion": "v61",
 	"Deps": [
 		{
 			"ImportPath": "github.com/Sirupsen/logrus",
@@ -134,6 +134,11 @@
 			"Rev": "bc465becccd1d527002fda095fc3c19d9c115029"
 		},
 		{
+			"ImportPath": "github.com/digitalocean/godo",
+			"Comment": "v0.9.0-49-g27d2cca",
+			"Rev": "27d2cca254e40de87ef3d247d0cb29fa57cd8303"
+		},
+		{
 			"ImportPath": "github.com/go-ini/ini",
 			"Comment": "v1.9.0",
 			"Rev": "193d1ecb466bf97aae8b454a5cfc192941c64809"
@@ -141,6 +146,10 @@
 		{
 			"ImportPath": "github.com/go-validator/validator",
 			"Rev": "3e4f037f12a1221a0864cf0dd2e81c452ab22448"
+		},
+		{
+			"ImportPath": "github.com/google/go-querystring/query",
+			"Rev": "6bb77fe6f42b85397288d4f6f67ac72f8f400ee7"
 		},
 		{
 			"ImportPath": "github.com/gorilla/context",
@@ -209,12 +218,28 @@
 			"Rev": "ae13b43a9af75dc2d58112381c03119e543a47e9"
 		},
 		{
+			"ImportPath": "github.com/tent/http-link-go",
+			"Rev": "ac974c61c2f990f4115b119354b5e0b47550e888"
+		},
+		{
 			"ImportPath": "golang.org/x/crypto/bcrypt",
 			"Rev": "055d4bfb5c396e3c3dcd9aad97c9086d48b23189"
 		},
 		{
 			"ImportPath": "golang.org/x/crypto/blowfish",
 			"Rev": "055d4bfb5c396e3c3dcd9aad97c9086d48b23189"
+		},
+		{
+			"ImportPath": "golang.org/x/net/context",
+			"Rev": "1dd0d85fc0634d2dbe7f7d06d176c2ff548e6332"
+		},
+		{
+			"ImportPath": "golang.org/x/oauth2",
+			"Rev": "b0e2337fe6ec0c637fa4f123268b972f334504eb"
+		},
+		{
+			"ImportPath": "golang.org/x/oauth2/internal",
+			"Rev": "b0e2337fe6ec0c637fa4f123268b972f334504eb"
 		},
 		{
 			"ImportPath": "golang.org/x/sys/unix",

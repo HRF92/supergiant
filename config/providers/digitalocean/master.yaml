@@ -659,6 +659,7 @@ coreos:
          --config=/etc/kubernetes/manifests \
          --cluster-dns=10.3.0.10 \
          --cluster_domain=cluster.local \
+         --register-node=false \
          --hostname-override=$public_ipv4
         Restart=on-failure
         RestartSec=5

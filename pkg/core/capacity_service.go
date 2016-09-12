@@ -370,7 +370,7 @@ func (pnode *projectedNode) usedCPU() (u float64) {
 func (pnode *projectedNode) usedVolumes() (u int) {
 	for _, pod := range pnode.Pods {
 		for _, vol := range pod.Spec.Volumes {
-			if vol.AwsElasticBlockStore != nil {
+			if vol.AwsElasticBlockStore != nil || vol.FlexVolume != nil {
 				u++
 			}
 		}

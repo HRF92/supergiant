@@ -1,7 +1,7 @@
 {
 	"ImportPath": "github.com/supergiant/supergiant",
 	"GoVersion": "go1.6",
-	"GodepVersion": "v61",
+	"GodepVersion": "v62",
 	"Deps": [
 		{
 			"ImportPath": "github.com/Sirupsen/logrus",
@@ -205,8 +205,8 @@
 		},
 		{
 			"ImportPath": "github.com/supergiant/guber",
-			"Comment": "v0.1.0-6-g54b92cf",
-			"Rev": "54b92cff9e9a762fe7cd999aff0922c301ccebb5"
+			"Comment": "v0.1.0-8-gae13b43",
+			"Rev": "ae13b43a9af75dc2d58112381c03119e543a47e9"
 		},
 		{
 			"ImportPath": "golang.org/x/crypto/bcrypt",

@@ -1,6 +1,9 @@
 package core
 
-import "github.com/supergiant/supergiant/pkg/model"
+import (
+	"github.com/supergiant/guber"
+	"github.com/supergiant/supergiant/pkg/model"
+)
 
 type Provider interface {
 	ValidateAccount(*model.CloudAccount) error
@@ -12,6 +15,7 @@ type Provider interface {
 	DeleteNode(*model.Node) error
 
 	CreateVolume(*model.Volume, *Action) error
+	KubernetesVolumeDefinition(*model.Volume) *guber.Volume
 	WaitForVolumeAvailable(*model.Volume, *Action) error
 	ResizeVolume(*model.Volume, *Action) error
 	DeleteVolume(*model.Volume) error

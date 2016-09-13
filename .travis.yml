@@ -13,7 +13,7 @@ env:
     - COMMIT=${TRAVIS_COMMIT::8}
 
 go:
-  - 1.6
+  - 1.7
 
 install:
   - wget https://releases.hashicorp.com/packer/0.10.1/packer_0.10.1_linux_amd64.zip
